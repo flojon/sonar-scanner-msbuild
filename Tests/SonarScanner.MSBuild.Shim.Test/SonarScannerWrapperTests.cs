@@ -32,8 +32,6 @@ namespace SonarScanner.MSBuild.Shim.Test
     [TestClass]
     public class SonarScannerWrapperTests
     {
-        private const string ExpectedConsoleMessagePrefix = "Args passed to dummy scanner: ";
-
         public TestContext TestContext { get; set; }
 
         #region Tests
@@ -43,7 +41,7 @@ namespace SonarScanner.MSBuild.Shim.Test
         {
             // Arrange
             var testSubject = new SonarScannerWrapper(new TestLogger());
-            Action act = () => testSubject.Execute(null, new string[] { }, String.Empty);
+            Action act = () => testSubject.Execute(null, new string[] { }, string.Empty);
 
             // Act & Assert
             act.Should().ThrowExactly<ArgumentNullException>().And.ParamName.Should().Be("config");
@@ -54,10 +52,21 @@ namespace SonarScanner.MSBuild.Shim.Test
         {
             // Arrange
             var testSubject = new SonarScannerWrapper(new TestLogger());
-            Action act = () => testSubject.Execute(new AnalysisConfig(), null, String.Empty);
+            Action act = () => testSubject.Execute(new AnalysisConfig(), null, string.Empty);
 
             // Act & Assert
             act.Should().ThrowExactly<ArgumentNullException>().And.ParamName.Should().Be("userCmdLineArguments");
+        }
+
+        [TestMethod]
+        public void Execute_WhenFullPropertiesFilePathIsNull_ReturnsFalse()
+        {
+            // Arrange
+            var testSubject = new SonarScannerWrapper(new TestLogger());
+            var result = testSubject.Execute(new AnalysisConfig(), new List<string>(), null);
+
+            // Act & Assert
+            result.Should().BeFalse();
         }
 
         [TestMethod]
@@ -257,28 +266,42 @@ namespace SonarScanner.MSBuild.Shim.Test
         }
 
         [TestMethod]
-        public void WrapperError_Success_NoStdErr()
-        {
+        public void WrapperError_Success_NoStdErr() =>
             TestWrapperErrorHandling(executeResult: true, addMessageToStdErr: false, expectedOutcome: true);
-        }
 
         [TestMethod]
-        [WorkItem(202)] //SONARMSBRU-202
-        public void WrapperError_Success_StdErr()
-        {
+        [WorkItem(202)] // SONARMSBRU-202
+        public void WrapperError_Success_StdErr() =>
             TestWrapperErrorHandling(executeResult: true, addMessageToStdErr: true, expectedOutcome: true);
-        }
 
         [TestMethod]
-        public void WrapperError_Fail_NoStdErr()
-        {
+        public void WrapperError_Fail_NoStdErr() =>
             TestWrapperErrorHandling(executeResult: false, addMessageToStdErr: false, expectedOutcome: false);
-        }
 
         [TestMethod]
-        public void WrapperError_Fail_StdErr()
-        {
+        public void WrapperError_Fail_StdErr() =>
             TestWrapperErrorHandling(executeResult: false, addMessageToStdErr: true, expectedOutcome: false);
+
+        [TestMethod]
+        public void FindScannerExe_ReturnsScannerCliBat()
+        {
+            // Act
+            var scannerCliScriptPath = SonarScannerWrapper.FindScannerExe();
+
+            // Assert
+            scannerCliScriptPath.Should().EndWithEquivalentOf(@"sonar-scanner-4.7.0.2747\bin\sonar-scanner.bat");
+        }
+
+#endregion Tests
+
+#region Private methods
+
+        private static bool ExecuteJavaRunnerIgnoringAsserts(AnalysisConfig config, IEnumerable<string> userCmdLineArguments, ILogger logger, string exeFileName, string propertiesFileName, IProcessRunner runner)
+        {
+            using (new AssertIgnoreScope())
+            {
+                return SonarScannerWrapper.ExecuteJavaRunner(config, userCmdLineArguments, logger, exeFileName, propertiesFileName, runner);
+            }
         }
 
         private void TestWrapperErrorHandling(bool executeResult, bool addMessageToStdErr, bool expectedOutcome)
@@ -301,21 +324,9 @@ namespace SonarScanner.MSBuild.Shim.Test
             VerifyProcessRunOutcome(mockRunner, logger, "C:\\working", success, expectedOutcome);
         }
 
-        #endregion Tests
+#endregion Private methods
 
-        #region Private methods
-
-        private static bool ExecuteJavaRunnerIgnoringAsserts(AnalysisConfig config, IEnumerable<string> userCmdLineArguments, ILogger logger, string exeFileName, string propertiesFileName, IProcessRunner runner)
-        {
-            using (new AssertIgnoreScope())
-            {
-                return SonarScannerWrapper.ExecuteJavaRunner(config, userCmdLineArguments, logger, exeFileName, propertiesFileName, runner);
-            }
-        }
-
-        #endregion Private methods
-
-        #region Checks
+#region Checks
 
         private static void VerifyProcessRunOutcome(MockProcessRunner mockRunner, TestLogger testLogger, string expectedWorkingDir, bool actualOutcome, bool expectedOutcome)
         {
@@ -367,6 +378,6 @@ namespace SonarScanner.MSBuild.Shim.Test
             mockRunner.SuppliedArguments.EnvironmentVariables[varName].Should().Be(expectedValue);
         }
 
-        #endregion Checks
+#endregion Checks
     }
 }
