@@ -24,6 +24,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Serialization.Json;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SonarScanner.MSBuild.Common;
 
@@ -126,6 +128,25 @@ namespace SonarScanner.MSBuild.PreProcessor
             //TODO: fail fast after release of S4NET 6.0
             //Deprecation notice for SQ < 7.9
             await server.WarnIfSonarQubeVersionIsDeprecated();
+            var cache = await server.DownloadCache(localSettings.ProjectKey, "main");
+            logger.LogWarning("ZZZ Parsing the analysis cache.");
+            var analysisCache = cache is null ? null : AnalysisCacheMsg.Parser.ParseFrom(cache);
+
+            logger.LogWarning("ZZZ Saving the analysis cache to file.");
+            var entries = analysisCache?.Map.ToDictionary(x => x.Key.Replace("/", "\\"), x =>
+                                                                     {
+                                                                         var currentHash = GetMd5Hash(x.Key);
+                                                                         var serverHash = x.Value.ToStringUtf8();
+                                                                         return new AnalysisCacheEntry { HasChanged = currentHash != serverHash };
+                                                                     }) ?? new Dictionary<string, AnalysisCacheEntry>();
+
+            // e.g. C:\src\opensource\nodatime\src\.sonarqube\conf
+            using (var fileStream = new FileStream($"{teamBuildSettings.SonarConfigDirectory}/analysis-cache.json", FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                new DataContractJsonSerializer(typeof(Dictionary<string, AnalysisCacheEntry>)).WriteObject(fileStream, entries);
+            }
+
+            logger.LogWarning("ZZZ Analysis cache persisted.");
 
             try
             {
@@ -152,6 +173,15 @@ namespace SonarScanner.MSBuild.PreProcessor
             AnalysisConfigGenerator.GenerateFile(localSettings, teamBuildSettings, argumentsAndRuleSets.ServerSettings, argumentsAndRuleSets.AnalyzersSettings, server, this.logger);
 
             return true;
+        }
+
+        private static string GetMd5Hash(string fileName)
+        {
+            using (var md5 = MD5.Create())
+            using (var stream = File.OpenRead(fileName))
+            {
+                return BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", string.Empty).ToLower();
+            }
         }
 
         #endregion Public methods

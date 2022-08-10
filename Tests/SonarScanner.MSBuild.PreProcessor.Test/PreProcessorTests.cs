@@ -666,6 +666,8 @@ namespace SonarScanner.MSBuild.PreProcessor.Test
 
             public Task WarnIfSonarQubeVersionIsDeprecated() =>
                 Task.CompletedTask;
+
+            public Task<Stream> DownloadCache(string projectKey, string projectBranch) => throw new NotImplementedException();
         }
     }
 }

@@ -135,6 +135,13 @@ namespace SonarScanner.MSBuild.PreProcessor
             }
         }
 
+        public async Task<Stream> DownloadCache(string projectKey, string projectBranch)
+        {
+            logger.LogInfo($"ZZZ Downloading the cache from the server. Project key: {projectKey}");
+            var ws = GetUrl("/api/analysis_cache/get?project={0}", projectKey /*, $"branch={projectBranch}" */);
+            return await downloader.DownloadStream(new Uri(ws));
+        }
+
         public async Task<bool> IsServerLicenseValid()
         {
             if (await IsSonarCloud())

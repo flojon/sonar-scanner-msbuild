@@ -168,6 +168,25 @@ namespace SonarScanner.MSBuild.PreProcessor
             return null;
         }
 
+        public async Task<Stream> DownloadStream(Uri url, bool logPermissionDenied = false)
+        {
+            logger.LogDebug(Resources.MSG_Downloading, url);
+            var response = await client.GetAsync(url).ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsStreamAsync();
+            }
+
+            if (logPermissionDenied && response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                logger.LogWarning(Resources.MSG_Forbidden_BrowsePermission);
+                response.EnsureSuccessStatusCode();
+            }
+
+            return null;
+        }
+
         #endregion IDownloaderMethods
 
         #region Private methods

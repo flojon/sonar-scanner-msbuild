@@ -605,6 +605,7 @@
       <!-- Use the set of analyzers and additional files calculated by the GetAnalyzerSettings task -->
       <Analyzer Include="@(SQAnalyzerFilePaths)" />
       <AdditionalFiles Include="@(SQAdditionalFiles)" />
+      <AdditionalFiles Include="$(SonarQubeConfigPath)\analysis-cache.json" />
       <AdditionalFiles Include="$(SonarProjectConfigFilePath)" />
       <AdditionalFiles Include="$(SonarProjectOutFolderFilePath)" />
     </ItemGroup>

@@ -77,6 +77,8 @@ namespace SonarScanner.MSBuild.PreProcessor.Test
             return Task.CompletedTask;
         }
 
+        public Task<Stream> DownloadCache(string projectKey, string projectBranch) => throw new NotImplementedException();
+
         Task<IList<SonarRule>> ISonarQubeServer.GetRules(string qProfile)
         {
             LogMethodCalled();

@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using SonarScanner.MSBuild.PreProcessor.Roslyn.Model;
 
@@ -65,5 +66,7 @@ namespace SonarScanner.MSBuild.PreProcessor
         Task<bool> IsServerLicenseValid();
 
         Task WarnIfSonarQubeVersionIsDeprecated();
+
+        Task<Stream> DownloadCache(string projectKey, string projectBranch);
     }
 }
